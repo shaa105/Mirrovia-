@@ -1,0 +1,765 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "c12db37f",
+   "metadata": {
+    "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+    "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:56:19.692620Z",
+     "iopub.status.busy": "2025-04-23T10:56:19.689109Z",
+     "iopub.status.idle": "2025-04-23T10:56:19.696942Z",
+     "shell.execute_reply": "2025-04-23T10:56:19.696280Z",
+     "shell.execute_reply.started": "2025-04-23T10:20:01.265352Z"
+    },
+    "papermill": {
+     "duration": 0.026371,
+     "end_time": "2025-04-23T10:56:19.697115",
+     "exception": false,
+     "start_time": "2025-04-23T10:56:19.670744",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Import necessary libraries\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "\n",
+    "from pathlib import Path\n",
+    "\n",
+    "# Define the path to the dataset folder\n",
+    "data_path = Path('/kaggle/input/h-and-m-personalized-fashion-recommendations/')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "33f769e1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:56:19.720655Z",
+     "iopub.status.busy": "2025-04-23T10:56:19.719882Z",
+     "iopub.status.idle": "2025-04-23T10:57:38.493734Z",
+     "shell.execute_reply": "2025-04-23T10:57:38.494195Z",
+     "shell.execute_reply.started": "2025-04-23T10:20:01.272839Z"
+    },
+    "papermill": {
+     "duration": 78.7883,
+     "end_time": "2025-04-23T10:57:38.494444",
+     "exception": false,
+     "start_time": "2025-04-23T10:56:19.706144",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Load the transactions data (set article_id as string to preserve leading zeros)\n",
+    "df = pd.read_csv(\n",
+    "    data_path / 'transactions_train.csv',\n",
+    "    # set dtype or pandas will drop the leading '0' and convert to int\n",
+    "    dtype={'article_id': str} \n",
+    ")\n",
+    "\n",
+    "# Load the sample submission file (used for formatting predictions)\n",
+    "submission = pd.read_csv(data_path / 'sample_submission.csv')\n",
+    "#transactions_train.csv: Full purchase history\n",
+    "#sample_submission.csv: Format for final predictions"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "d5bb0a53",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:38.522671Z",
+     "iopub.status.busy": "2025-04-23T10:57:38.521657Z",
+     "iopub.status.idle": "2025-04-23T10:57:38.539125Z",
+     "shell.execute_reply": "2025-04-23T10:57:38.539599Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:34.980824Z"
+    },
+    "papermill": {
+     "duration": 0.036455,
+     "end_time": "2025-04-23T10:57:38.539764",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:38.503309",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(31788324, 5)\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>t_dat</th>\n",
+       "      <th>customer_id</th>\n",
+       "      <th>article_id</th>\n",
+       "      <th>price</th>\n",
+       "      <th>sales_channel_id</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>2018-09-20</td>\n",
+       "      <td>000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...</td>\n",
+       "      <td>0663713001</td>\n",
+       "      <td>0.050831</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>2018-09-20</td>\n",
+       "      <td>000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...</td>\n",
+       "      <td>0541518023</td>\n",
+       "      <td>0.030492</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>2018-09-20</td>\n",
+       "      <td>00007d2de826758b65a93dd24ce629ed66842531df6699...</td>\n",
+       "      <td>0505221004</td>\n",
+       "      <td>0.015237</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>2018-09-20</td>\n",
+       "      <td>00007d2de826758b65a93dd24ce629ed66842531df6699...</td>\n",
+       "      <td>0685687003</td>\n",
+       "      <td>0.016932</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>2018-09-20</td>\n",
+       "      <td>00007d2de826758b65a93dd24ce629ed66842531df6699...</td>\n",
+       "      <td>0685687004</td>\n",
+       "      <td>0.016932</td>\n",
+       "      <td>2</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "        t_dat                                        customer_id  article_id  \\\n",
+       "0  2018-09-20  000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...  0663713001   \n",
+       "1  2018-09-20  000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...  0541518023   \n",
+       "2  2018-09-20  00007d2de826758b65a93dd24ce629ed66842531df6699...  0505221004   \n",
+       "3  2018-09-20  00007d2de826758b65a93dd24ce629ed66842531df6699...  0685687003   \n",
+       "4  2018-09-20  00007d2de826758b65a93dd24ce629ed66842531df6699...  0685687004   \n",
+       "\n",
+       "      price  sales_channel_id  \n",
+       "0  0.050831                 2  \n",
+       "1  0.030492                 2  \n",
+       "2  0.015237                 2  \n",
+       "3  0.016932                 2  \n",
+       "4  0.016932                 2  "
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Check the shape of the transactions DataFrame and preview the data\n",
+    "print(df.shape)\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "c2398000",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:40.813382Z",
+     "iopub.status.busy": "2025-04-23T10:57:40.812718Z",
+     "iopub.status.idle": "2025-04-23T10:57:46.795578Z",
+     "shell.execute_reply": "2025-04-23T10:57:46.794046Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:35.007543Z"
+    },
+    "papermill": {
+     "duration": 8.246555,
+     "end_time": "2025-04-23T10:57:46.795728",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:38.549173",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df['t_dat'] = pd.to_datetime(df['t_dat'])\n",
+    "#df_3w: Transactions in the last 3 weeks\n",
+    "#df_2w: Last 2 weeks\n",
+    "#df_1w: Last 1 week"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "96c88580",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:46.832981Z",
+     "iopub.status.busy": "2025-04-23T10:57:46.832114Z",
+     "iopub.status.idle": "2025-04-23T10:57:47.484646Z",
+     "shell.execute_reply": "2025-04-23T10:57:47.483993Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:41.871049Z"
+    },
+    "papermill": {
+     "duration": 0.675604,
+     "end_time": "2025-04-23T10:57:47.484819",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:46.809215",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Filter transactions that occurred in the last 3, 2, and 1 weeks before cutoff (2020-09-22)\n",
+    "df_3w = df[df['t_dat'] >= pd.to_datetime('2020-08-31')].copy()\n",
+    "df_2w = df[df['t_dat'] >= pd.to_datetime('2020-09-07')].copy()\n",
+    "df_1w = df[df['t_dat'] >= pd.to_datetime('2020-09-15')].copy()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "6df49525",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:47.554358Z",
+     "iopub.status.busy": "2025-04-23T10:57:47.512187Z",
+     "iopub.status.idle": "2025-04-23T10:57:49.733667Z",
+     "shell.execute_reply": "2025-04-23T10:57:49.732647Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:42.459193Z"
+    },
+    "papermill": {
+     "duration": 2.235908,
+     "end_time": "2025-04-23T10:57:49.733815",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:47.497907",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "196319\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Initialize a dictionary to store purchase history from the last 3 weeks\n",
+    "purchase_dict_3w = {}\n",
+    "\n",
+    "# Loop through each transaction in the last 3 weeks\n",
+    "for i,x in enumerate(zip(df_3w['customer_id'], df_3w['article_id'])):\n",
+    "    cust_id, art_id = x\n",
+    "\n",
+    "    # Create a new customer entry if not already in the dict\n",
+    "    if cust_id not in purchase_dict_3w:\n",
+    "        purchase_dict_3w[cust_id] = {}\n",
+    "\n",
+    "    # Initialize the article count if not already present\n",
+    "    if art_id not in purchase_dict_3w[cust_id]:\n",
+    "        purchase_dict_3w[cust_id][art_id] = 0\n",
+    "\n",
+    "    # Increment the count for this article\n",
+    "    purchase_dict_3w[cust_id][art_id] += 1\n",
+    "\n",
+    "# Print number of unique customers with purchase history in last 3 weeks\n",
+    "print(len(purchase_dict_3w))\n",
+    "\n",
+    "# Get the 12 most frequently purchased articles in the last 3 weeks (used as fallback recommendations)\n",
+    "dummy_list_3w = list((df_3w['article_id'].value_counts()).index)[:12]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "b9250671",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:49.825281Z",
+     "iopub.status.busy": "2025-04-23T10:57:49.809934Z",
+     "iopub.status.idle": "2025-04-23T10:57:50.791948Z",
+     "shell.execute_reply": "2025-04-23T10:57:50.792631Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:43.909520Z"
+    },
+    "papermill": {
+     "duration": 1.026551,
+     "end_time": "2025-04-23T10:57:50.792828",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:49.766277",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "143455\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Repeat the same logic for 2 weeks\n",
+    "purchase_dict_2w = {}\n",
+    "\n",
+    "for i,x in enumerate(zip(df_2w['customer_id'], df_2w['article_id'])):\n",
+    "    cust_id, art_id = x\n",
+    "    if cust_id not in purchase_dict_2w:\n",
+    "        purchase_dict_2w[cust_id] = {}\n",
+    "    \n",
+    "    if art_id not in purchase_dict_2w[cust_id]:\n",
+    "        purchase_dict_2w[cust_id][art_id] = 0\n",
+    "    \n",
+    "    purchase_dict_2w[cust_id][art_id] += 1\n",
+    "    \n",
+    "print(len(purchase_dict_2w))\n",
+    "\n",
+    "dummy_list_2w = list((df_2w['article_id'].value_counts()).index)[:12]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "3242ab33",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:50.856769Z",
+     "iopub.status.busy": "2025-04-23T10:57:50.851263Z",
+     "iopub.status.idle": "2025-04-23T10:57:51.245445Z",
+     "shell.execute_reply": "2025-04-23T10:57:51.244800Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:44.934145Z"
+    },
+    "papermill": {
+     "duration": 0.442565,
+     "end_time": "2025-04-23T10:57:51.245593",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:50.803028",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "75481\n"
+     ]
+    }
+   ],
+   "source": [
+    "\n",
+    "# Repeat the same logic for 1 week\n",
+    "purchase_dict_1w = {}\n",
+    "\n",
+    "for i,x in enumerate(zip(df_1w['customer_id'], df_1w['article_id'])):\n",
+    "    cust_id, art_id = x\n",
+    "    if cust_id not in purchase_dict_1w:\n",
+    "        purchase_dict_1w[cust_id] = {}\n",
+    "    \n",
+    "    if art_id not in purchase_dict_1w[cust_id]:\n",
+    "        purchase_dict_1w[cust_id][art_id] = 0\n",
+    "    \n",
+    "    purchase_dict_1w[cust_id][art_id] += 1\n",
+    "    \n",
+    "print(len(purchase_dict_1w))\n",
+    "\n",
+    "dummy_list_1w = list((df_1w['article_id'].value_counts()).index)[:12]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "484e57d1",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:51.275533Z",
+     "iopub.status.busy": "2025-04-23T10:57:51.274510Z",
+     "iopub.status.idle": "2025-04-23T10:57:51.279177Z",
+     "shell.execute_reply": "2025-04-23T10:57:51.279761Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:45.341630Z"
+    },
+    "papermill": {
+     "duration": 0.024406,
+     "end_time": "2025-04-23T10:57:51.279940",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:51.255534",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(1371980, 2)\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>customer_id</th>\n",
+       "      <th>prediction</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>00000dbacae5abe5e23885899a1fa44253a17956c6d1c3...</td>\n",
+       "      <td>0706016001 0706016002 0372860001 0610776002 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...</td>\n",
+       "      <td>0706016001 0706016002 0372860001 0610776002 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...</td>\n",
+       "      <td>0706016001 0706016002 0372860001 0610776002 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2...</td>\n",
+       "      <td>0706016001 0706016002 0372860001 0610776002 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>00006413d8573cd20ed7128e53b7b13819fe5cfc2d801f...</td>\n",
+       "      <td>0706016001 0706016002 0372860001 0610776002 07...</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                                         customer_id  \\\n",
+       "0  00000dbacae5abe5e23885899a1fa44253a17956c6d1c3...   \n",
+       "1  0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...   \n",
+       "2  000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...   \n",
+       "3  00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2...   \n",
+       "4  00006413d8573cd20ed7128e53b7b13819fe5cfc2d801f...   \n",
+       "\n",
+       "                                          prediction  \n",
+       "0  0706016001 0706016002 0372860001 0610776002 07...  \n",
+       "1  0706016001 0706016002 0372860001 0610776002 07...  \n",
+       "2  0706016001 0706016002 0372860001 0610776002 07...  \n",
+       "3  0706016001 0706016002 0372860001 0610776002 07...  \n",
+       "4  0706016001 0706016002 0372860001 0610776002 07...  "
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "# Check shape and sample of the submission file\n",
+    "print(submission.shape)\n",
+    "submission.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "d1b8cee7",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:51.325457Z",
+     "iopub.status.busy": "2025-04-23T10:57:51.324741Z",
+     "iopub.status.idle": "2025-04-23T10:57:53.655588Z",
+     "shell.execute_reply": "2025-04-23T10:57:53.654872Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:45.356944Z"
+    },
+    "papermill": {
+     "duration": 2.360589,
+     "end_time": "2025-04-23T10:57:53.655975",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:51.295386",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(1371980, 2)\n"
+     ]
+    },
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>customer_id</th>\n",
+       "      <th>prediction</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>00000dbacae5abe5e23885899a1fa44253a17956c6d1c3...</td>\n",
+       "      <td>0568601043 0751471001 0909370001 0915526001 09...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...</td>\n",
+       "      <td>0909370001 0924243001 0918522001 0448509014 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...</td>\n",
+       "      <td>0794321007 0924243001 0924243002 0923758001 09...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2...</td>\n",
+       "      <td>0909370001 0924243001 0918522001 0448509014 07...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>00006413d8573cd20ed7128e53b7b13819fe5cfc2d801f...</td>\n",
+       "      <td>0909370001 0924243001 0918522001 0448509014 07...</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "                                         customer_id  \\\n",
+       "0  00000dbacae5abe5e23885899a1fa44253a17956c6d1c3...   \n",
+       "1  0000423b00ade91418cceaf3b26c6af3dd342b51fd051e...   \n",
+       "2  000058a12d5b43e67d225668fa1f8d618c13dc232df0ca...   \n",
+       "3  00005ca1c9ed5f5146b52ac8639a40ca9d57aeff4d1bd2...   \n",
+       "4  00006413d8573cd20ed7128e53b7b13819fe5cfc2d801f...   \n",
+       "\n",
+       "                                          prediction  \n",
+       "0  0568601043 0751471001 0909370001 0915526001 09...  \n",
+       "1  0909370001 0924243001 0918522001 0448509014 07...  \n",
+       "2  0794321007 0924243001 0924243002 0923758001 09...  \n",
+       "3  0909370001 0924243001 0918522001 0448509014 07...  \n",
+       "4  0909370001 0924243001 0918522001 0448509014 07...  "
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "not_so_fancy_but_fast_benchmark = submission[['customer_id']]\n",
+    "prediction_list = []\n",
+    "\n",
+    "dummy_list = list((df_2w['article_id'].value_counts()).index)[:12]\n",
+    "dummy_pred = ' '.join(dummy_list)\n",
+    "\n",
+    "for i, cust_id in enumerate(submission['customer_id'].values.reshape((-1,))):\n",
+    "    if cust_id in purchase_dict_1w:\n",
+    "        l = sorted((purchase_dict_1w[cust_id]).items(), key=lambda x: x[1], reverse=True)\n",
+    "        l = [y[0] for y in l]\n",
+    "        if len(l)>12:\n",
+    "            s = ' '.join(l[:12])\n",
+    "        else:\n",
+    "            s = ' '.join(l+dummy_list_1w[:(12-len(l))])\n",
+    "    elif cust_id in purchase_dict_2w:\n",
+    "        l = sorted((purchase_dict_2w[cust_id]).items(), key=lambda x: x[1], reverse=True)\n",
+    "        l = [y[0] for y in l]\n",
+    "        if len(l)>12:\n",
+    "            s = ' '.join(l[:12])\n",
+    "        else:\n",
+    "            s = ' '.join(l+dummy_list_2w[:(12-len(l))])\n",
+    "    elif cust_id in purchase_dict_3w:\n",
+    "        l = sorted((purchase_dict_3w[cust_id]).items(), key=lambda x: x[1], reverse=True)\n",
+    "        l = [y[0] for y in l]\n",
+    "        if len(l)>12:\n",
+    "            s = ' '.join(l[:12])\n",
+    "        else:\n",
+    "            s = ' '.join(l+dummy_list_3w[:(12-len(l))])\n",
+    "    else:\n",
+    "        s = dummy_pred\n",
+    "    prediction_list.append(s)\n",
+    "\n",
+    "not_so_fancy_but_fast_benchmark['prediction'] = prediction_list\n",
+    "print(not_so_fancy_but_fast_benchmark.shape)\n",
+    "not_so_fancy_but_fast_benchmark.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "1d73706a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2025-04-23T10:57:53.687735Z",
+     "iopub.status.busy": "2025-04-23T10:57:53.687034Z",
+     "iopub.status.idle": "2025-04-23T10:58:02.968121Z",
+     "shell.execute_reply": "2025-04-23T10:58:02.967422Z",
+     "shell.execute_reply.started": "2025-04-23T10:21:47.640952Z"
+    },
+    "papermill": {
+     "duration": 9.299183,
+     "end_time": "2025-04-23T10:58:02.968262",
+     "exception": false,
+     "start_time": "2025-04-23T10:57:53.669079",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Save the final predictions DataFrame (created earlier) to a CSV file.\n",
+    "# Each row contains a customer_id and a string of 12 predicted article_ids.\n",
+    "# This file will be uploaded to Kaggle for evaluation.\n",
+    "not_so_fancy_but_fast_benchmark.to_csv('not_so_fancy_but_fast_benchmark.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d03ca530",
+   "metadata": {
+    "papermill": {
+     "duration": 0.010674,
+     "end_time": "2025-04-23T10:58:02.990224",
+     "exception": false,
+     "start_time": "2025-04-23T10:58:02.979550",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "databundleVersionId": 3103714,
+     "sourceId": 31254,
+     "sourceType": "competition"
+    }
+   ],
+   "dockerImageVersionId": 30154,
+   "isGpuEnabled": false,
+   "isInternetEnabled": true,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.12"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 115.253044,
+   "end_time": "2025-04-23T10:58:05.613128",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2025-04-23T10:56:10.360084",
+   "version": "2.3.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
