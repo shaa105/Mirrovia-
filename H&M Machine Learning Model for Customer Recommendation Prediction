@@ -25,7 +25,8 @@
    },
    "outputs": [],
    "source": [
-    "# Import necessary libraries\n",
+    "# Import necessary libraries\n", 
+    "# Competition goal: For each customer within the training data we need to predict up to 12 products that the customer will buy in the next 7-day period after the training time period.\n", 
     "import numpy as np\n",
     "import pandas as pd\n",
     "\n",
